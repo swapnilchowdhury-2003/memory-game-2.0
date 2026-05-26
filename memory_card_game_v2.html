@@ -1,0 +1,258 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+#app{max-width:400px;margin:0 auto;padding:10px;min-height:100vh;font-family:var(--font-sans)}
+.screen{display:none}
+.screen.active{display:block}
+#setup-screen{text-align:center;padding:24px 16px}
+#setup-screen h2{font-size:22px;font-weight:500;color:var(--color-text-primary);margin-bottom:6px}
+#setup-screen p{font-size:13px;color:var(--color-text-secondary);margin-bottom:24px}
+
+.ludo-selector{position:relative;width:240px;height:240px;margin:0 auto 28px}
+.ludo-board{width:100%;height:100%;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:6px;padding:6px;background:var(--color-background-secondary);border-radius:16px;border:0.5px solid var(--color-border-tertiary)}
+.corner{border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;position:relative;border:2px solid transparent}
+.corner .avatar{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;transition:all .2s;border:2.5px solid transparent}
+.corner.active .avatar{border-color:rgba(255,255,255,0.8);transform:scale(1.08)}
+.corner.inactive{opacity:0.35;filter:grayscale(0.5)}
+.corner.inactive:hover{opacity:0.6}
+.c-red{background:#FFECEC}.c-red .avatar{background:#FF6B6B}
+.c-blue{background:#E8F4FF}.c-blue .avatar{background:#4A90D9}
+.c-green{background:#E8FFE8}.c-green .avatar{background:#4CAF50}
+.c-yellow{background:#FFFBE6}.c-yellow .avatar{background:#FFC107}
+.corner.active.c-red{border-color:#FF6B6B;background:#FFDDDD}
+.corner.active.c-blue{border-color:#4A90D9;background:#D6EEFF}
+.corner.active.c-green{border-color:#4CAF50;background:#D5FFD5}
+.corner.active.c-yellow{border-color:#FFC107;background:#FFF3CC}
+.ludo-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:62px;height:62px;background:var(--color-background-primary);border-radius:50%;border:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1px;pointer-events:none}
+.ludo-center span{font-size:18px;font-weight:500;color:var(--color-text-primary);line-height:1}
+.ludo-center small{font-size:10px;color:var(--color-text-secondary)}
+
+.hint{font-size:12px;color:var(--color-text-secondary);margin-bottom:20px}
+.start-btn{width:100%;padding:14px;border-radius:var(--border-radius-lg);background:#7F77DD;color:#fff;border:none;font-size:16px;font-weight:500;cursor:pointer;transition:all .15s;opacity:0.5;pointer-events:none}
+.start-btn.ready{opacity:1;pointer-events:all}
+.start-btn.ready:hover{background:#534AB7}
+
+#game-screen{padding:6px}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:6px;flex-wrap:wrap}
+.turn-badge{font-size:12px;font-weight:500;padding:4px 10px;border-radius:20px;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.turn-avatar{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px}
+.scores{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.score-chip{font-size:11px;padding:3px 8px;border-radius:12px;border:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary);color:var(--color-text-secondary);display:flex;align-items:center;gap:4px;white-space:nowrap}
+.score-chip.active{border-width:1.5px;font-weight:500}
+.chip-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
+.card{aspect-ratio:1;border-radius:8px;cursor:pointer;perspective:500px;position:relative}
+.card-inner{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .3s}
+.card.flipped .card-inner,.card.matched .card-inner{transform:rotateY(180deg)}
+.card-back,.card-front{position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.card-back{background:linear-gradient(135deg,#7F77DD,#534AB7);border:1.5px solid #AFA9EC}
+.card-back::after{content:'?';color:rgba(255,255,255,0.6);font-size:16px;font-weight:700}
+.card-front{background:var(--color-background-primary);border:1.5px solid var(--color-border-secondary);transform:rotateY(180deg)}
+.card.matched .card-front{background:#E1F5EE;border-color:#5DCAA5}
+.card.shaking .card-inner{animation:shake .3s}
+@keyframes shake{0%,100%{transform:rotateY(180deg) translateX(0)}25%{transform:rotateY(180deg) translateX(-3px)}75%{transform:rotateY(180deg) translateX(3px)}}
+
+.winner-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:100}
+.winner-box{background:var(--color-background-primary);border-radius:var(--border-radius-lg);padding:26px 22px;text-align:center;max-width:300px;width:90%}
+.winner-box h2{font-size:20px;font-weight:500;color:var(--color-text-primary);margin-bottom:6px}
+.winner-box p{font-size:13px;color:var(--color-text-secondary);margin-bottom:16px}
+.final-scores{margin-bottom:18px}
+.final-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:14px;color:var(--color-text-primary)}
+.final-row.top{font-weight:500}
+.final-avatar{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.final-name{display:flex;align-items:center;gap:8px}
+.play-again-btn{width:100%;padding:12px;border-radius:var(--border-radius-lg);background:#7F77DD;color:#fff;border:none;font-size:15px;font-weight:500;cursor:pointer}
+.play-again-btn:hover{background:#534AB7}
+</style>
+
+<div id="app">
+<h2 class="sr-only">Memory Card Matching Game</h2>
+
+<div id="setup-screen" class="screen active">
+  <h2>🃏 Memory Match</h2>
+  <p>Tap corners to select players</p>
+
+  <div class="ludo-selector">
+    <div class="ludo-board">
+      <div class="corner c-red active" data-p="0" onclick="toggleCorner(0)">
+        <div class="avatar">🔴</div>
+      </div>
+      <div class="corner c-blue active" data-p="1" onclick="toggleCorner(1)">
+        <div class="avatar">🔵</div>
+      </div>
+      <div class="corner c-green inactive" data-p="2" onclick="toggleCorner(2)">
+        <div class="avatar">🟢</div>
+      </div>
+      <div class="corner c-yellow inactive" data-p="3" onclick="toggleCorner(3)">
+        <div class="avatar">🟡</div>
+      </div>
+    </div>
+    <div class="ludo-center">
+      <span id="player-count">2</span>
+      <small>players</small>
+    </div>
+  </div>
+
+  <p class="hint" id="hint-text">2 players selected — tap green/yellow to add more</p>
+  <button class="start-btn ready" id="start-btn" onclick="startGame()">Start game</button>
+</div>
+
+<div id="game-screen" class="screen">
+  <div class="topbar">
+    <div class="turn-badge" id="turn-badge"></div>
+    <div class="scores" id="scores"></div>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<div class="winner-overlay" id="winner-overlay">
+  <div class="winner-box">
+    <h2 id="winner-title">🎉</h2>
+    <p id="winner-sub"></p>
+    <div class="final-scores" id="final-scores"></div>
+    <button class="play-again-btn" onclick="resetGame()">Play again</button>
+  </div>
+</div>
+</div>
+
+<script>
+const EMOJIS=['🐶','🐱','🦊','🐸','🦋','🌸','🍕','🎸','🚀','⚽','🎃','🍉','🦄','🌈','🍄'];
+const PLAYERS=[
+  {name:'Red',emoji:'🔴',bg:'#FF6B6B',light:'#FFDDDD',chipBg:'#FFECEC',chipColor:'#c0392b'},
+  {name:'Blue',emoji:'🔵',bg:'#4A90D9',light:'#D6EEFF',chipBg:'#E8F4FF',chipColor:'#1a5fa8'},
+  {name:'Green',emoji:'🟢',bg:'#4CAF50',light:'#D5FFD5',chipBg:'#E8FFE8',chipColor:'#1e7e34'},
+  {name:'Yellow',emoji:'🟡',bg:'#FFC107',light:'#FFF3CC',chipBg:'#FFFBE6',chipColor:'#b8860b'},
+];
+
+let active=[true,true,false,false];
+let scores=[],currentPlayer=0,flipped=[],matchedCount=0,locked=false,cards=[];
+let activePlayers=[];
+
+function toggleCorner(i){
+  const on=active.filter(Boolean).length;
+  if(active[i]&&on<=2)return;
+  active[i]=!active[i];
+  const el=document.querySelector(`.corner[data-p="${i}"]`);
+  el.classList.toggle('active',active[i]);
+  el.classList.toggle('inactive',!active[i]);
+  const count=active.filter(Boolean).length;
+  document.getElementById('player-count').textContent=count;
+  const hints=['','','2 players selected — tap green/yellow to add more','3 players selected — tap yellow to add one more','All 4 players selected'];
+  document.getElementById('hint-text').textContent=hints[count]||'';
+}
+
+const AudioCtx=window.AudioContext||window.webkitAudioContext;
+let actx=null;
+function getACtx(){if(!actx)actx=new AudioCtx();return actx;}
+function playFlip(){try{const c=getACtx();const o=c.createOscillator();const g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=600;g.gain.setValueAtTime(0.15,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.1);o.start(c.currentTime);o.stop(c.currentTime+0.1);}catch(e){}}
+function playMatch(){try{const c=getACtx();[500,700,900].forEach((f,i)=>{const o=c.createOscillator();const g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=f;g.gain.setValueAtTime(0.2,c.currentTime+i*0.08);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+i*0.08+0.15);o.start(c.currentTime+i*0.08);o.stop(c.currentTime+i*0.08+0.15);});}catch(e){}}
+function playFail(){try{const c=getACtx();const o=c.createOscillator();const g=c.createGain();o.type='sawtooth';o.connect(g);g.connect(c.destination);o.frequency.setValueAtTime(200,c.currentTime);o.frequency.exponentialRampToValueAtTime(80,c.currentTime+0.3);g.gain.setValueAtTime(0.2,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.3);o.start(c.currentTime);o.stop(c.currentTime+0.3);}catch(e){}}
+function playWin(){try{const c=getACtx();[523,659,784,1047].forEach((f,i)=>{const o=c.createOscillator();const g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=f;g.gain.setValueAtTime(0.25,c.currentTime+i*0.12);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+i*0.12+0.25);o.start(c.currentTime+i*0.12);o.stop(c.currentTime+i*0.12+0.25);});}catch(e){}}
+
+function startGame(){
+  activePlayers=PLAYERS.filter((_,i)=>active[i]);
+  scores=Array(activePlayers.length).fill(0);
+  currentPlayer=0;matchedCount=0;flipped=[];locked=false;
+  document.getElementById('setup-screen').classList.remove('active');
+  document.getElementById('game-screen').classList.add('active');
+  buildGrid();renderScores();updateTurnBadge();
+}
+
+function buildGrid(){
+  const pairs=[...EMOJIS,...EMOJIS];
+  for(let i=pairs.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pairs[i],pairs[j]]=[pairs[j],pairs[i]];}
+  cards=pairs.map((e,i)=>({id:i,emoji:e,flipped:false,matched:false}));
+  const grid=document.getElementById('grid');
+  grid.innerHTML='';
+  cards.forEach((card,i)=>{
+    const el=document.createElement('div');
+    el.className='card';el.dataset.i=i;
+    el.innerHTML=`<div class="card-inner"><div class="card-back"></div><div class="card-front">${card.emoji}</div></div>`;
+    el.addEventListener('click',()=>onCardClick(i));
+    grid.appendChild(el);
+  });
+}
+
+function onCardClick(i){
+  if(locked)return;
+  const card=cards[i];
+  if(card.flipped||card.matched)return;
+  if(flipped.length>=2)return;
+  playFlip();
+  card.flipped=true;flipped.push(i);
+  document.querySelector(`.card[data-i="${i}"]`).classList.add('flipped');
+  if(flipped.length===2)checkMatch();
+}
+
+function checkMatch(){
+  locked=true;
+  const [a,b]=flipped;
+  if(cards[a].emoji===cards[b].emoji){
+    setTimeout(()=>{
+      playMatch();
+      cards[a].matched=true;cards[b].matched=true;
+      document.querySelector(`.card[data-i="${a}"]`).classList.add('matched');
+      document.querySelector(`.card[data-i="${b}"]`).classList.add('matched');
+      scores[currentPlayer]++;matchedCount++;flipped=[];locked=false;
+      renderScores();
+      if(matchedCount===15){setTimeout(showWinner,400);return;}
+    },400);
+  } else {
+    setTimeout(()=>{
+      playFail();
+      const ea=document.querySelector(`.card[data-i="${a}"]`);
+      const eb=document.querySelector(`.card[data-i="${b}"]`);
+      ea.classList.add('shaking');eb.classList.add('shaking');
+      setTimeout(()=>{
+        ea.classList.remove('flipped','shaking');eb.classList.remove('flipped','shaking');
+        cards[a].flipped=false;cards[b].flipped=false;
+        flipped=[];locked=false;
+        currentPlayer=(currentPlayer+1)%activePlayers.length;
+        updateTurnBadge();renderScores();
+      },500);
+    },800);
+  }
+}
+
+function renderScores(){
+  const el=document.getElementById('scores');
+  el.innerHTML=activePlayers.map((p,i)=>`
+    <div class="score-chip ${i===currentPlayer?'active':''}" style="${i===currentPlayer?`border-color:${p.bg};background:${p.light};color:${p.chipColor}`:''}">
+      <div class="chip-dot" style="background:${p.bg}"></div>${p.name}: ${scores[i]}
+    </div>`).join('');
+}
+
+function updateTurnBadge(){
+  const p=activePlayers[currentPlayer];
+  const el=document.getElementById('turn-badge');
+  el.innerHTML=`<div class="turn-avatar" style="background:${p.light}">${p.emoji}</div>${p.name}'s turn`;
+  el.style.background=p.light;el.style.color=p.chipColor;
+  el.style.border=`1.5px solid ${p.bg}44`;
+}
+
+function showWinner(){
+  playWin();
+  const max=Math.max(...scores);
+  const winners=activePlayers.filter((_,i)=>scores[i]===max).map(p=>p.name);
+  const overlay=document.getElementById('winner-overlay');
+  document.getElementById('winner-title').textContent=winners.length===1?'🎉 Winner!':'🤝 Draw!';
+  document.getElementById('winner-sub').textContent=winners.length===1?`${winners[0]} wins with ${max} pairs!`:`${winners.join(' & ')} tied with ${max} pairs!`;
+  const sorted=activePlayers.map((p,i)=>({p,s:scores[i]})).sort((a,b)=>b.s-a.s);
+  document.getElementById('final-scores').innerHTML=sorted.map(r=>`
+    <div class="final-row ${r.s===max?'top':''}">
+      <div class="final-name">
+        <div class="final-avatar" style="background:${r.p.light}">${r.p.emoji}</div>
+        ${r.p.name}
+      </div>
+      <span>${r.s} pairs</span>
+    </div>`).join('');
+  overlay.style.display='flex';
+}
+
+function resetGame(){
+  document.getElementById('winner-overlay').style.display='none';
+  document.getElementById('game-screen').classList.remove('active');
+  document.getElementById('setup-screen').classList.add('active');
+}
+</script>
